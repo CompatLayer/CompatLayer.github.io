@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Browser-Based Execution & Compatibility Framework</title>
+
+<!-- PDF.js -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+
+<!-- DOCX Renderer -->
+<script src="https://unpkg.com/mammoth/mammoth.browser.min.js"></script>
+
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+    font-family: system-ui, sans-serif;
+    background: #0f172a;
+    color: #e2e8f0;
+    height: 100vh;
+    display: flex;
+}
+
+/* Sidebar */
+.sidebar {
+    width: 260px;
+    background: #111827;
+    padding: 20px;
+    border-right: 1px solid #1f2937;
+}
+
+.sidebar h1 {
+    font-size: 1.1rem;
+    margin-bottom: 20px;
+    color: #60a5fa;
+}
+
+.sidebar button {
+    width: 100%;
+    padding: 12px;
+    margin-bottom: 10px;
+    background: #1f2937;
+    border: 1px solid #334155;
+    color: #e2e8f0;
+    border-radius: 8px;
+    cursor: pointer;
+    text-align: left;
+}
+
+.sidebar button:hover {
+    background: #334155;
+}
+
+/* Main Workspace */
+.main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+.header {
+    padding: 14px 20px;
+    border-bottom: 1px solid #1f2937;
+    background: #0b1220;
+    font-size: 0.9rem;
+    color: #94a3b8;
+}
+
+.workspace {
+    flex: 1;
+    position: relative;
+    overflow: auto;
+    padding: 20px;
+}
+
+/* Viewer Areas */
+#pdf-viewer canvas {
+    display: block;
+    margin: 10px auto;
+}
+
+#docx-viewer {
+    background: white;
+    color: black;
+    padding: 40px;
+    max-width: 800px;
+    margin: auto;
+}
+
+#image-viewer img {
+    max-width: 100%;
+    display: block;
+    margin: auto;
+}
+
+#text-viewer {
+    white-space: pre-wrap;
+    font-family: monospace;
+    background: #0b1220;
+    padding: 20px;
+    border-radius: 8px;
+}
+
+/* Emulator container */
+#emulator-container {
+    width: 100%;
+    height: 100%;
+}
+</style>
+</head>
+<body>
+
+<div class="sidebar">
+    <h1>Execution Framework</h1>
+    <button onclick="fileInput.click()">📂 Open File</button>
+    <button onclick="showInfo()">ℹ️ About Runtime</button>
+    <input type="file" id="fileInput" hidden>
+</div>
+
+<div class="main">
+    <div class="header">Universal Browser Runtime Environment</div>
+    <div class="workspace" id="workspace">
+        <p>Select a file to begin.</p>
+    </div>
+</div>
+
+<script>
+const workspace = document.getElementById("workspace");
+const fileInput = document.getElementById("fileInput");
+
+fileInput.addEventListener("change", handleFile);
+
+function clearWorkspace() {
+    workspace.innerHTML = "";
+}
+
+/* ================= FILE HANDLER ================= */
+function handleFile(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const ext = file.name.split('.').pop().toLowerCase();
+    clearWorkspace();
+
+    if (["pdf"].includes(ext)) renderPDF(file);
+    else if (["docx"].includes(ext)) renderDOCX(file);
+    else if (["txt","md","js","json","html","css"].includes(ext)) renderText(file);
+    else if (["png","jpg","jpeg","gif","webp"].includes(ext)) renderImage(file);
+    else loadEmulator(file, ext);
+}
+
+/* ================= PDF VIEWER ================= */
+function renderPDF(file) {
+    const url = URL.createObjectURL(file);
+    const pdfContainer = document.createElement("div");
+    pdfContainer.id = "pdf-viewer";
+    workspace.appendChild(pdfContainer);
+
+    pdfjsLib.getDocument(url).promise.then(pdf => {
+        for (let i = 1; i <= pdf.numPages; i++) {
+            pdf.getPage(i).then(page => {
+                const canvas = document.createElement("canvas");
+                const ctx = canvas.getContext("2d");
+                const viewport = page.getViewport({ scale: 1.5 });
+                canvas.height = viewport.height;
+                canvas.width = viewport.width;
+                pdfContainer.appendChild(canvas);
+                page.render({ canvasContext: ctx, viewport });
+            });
+        }
+    });
+}
+
+/* ================= DOCX VIEWER ================= */
+function renderDOCX(file) {
+    const reader = new FileReader();
+    reader.onload = function(event) {
+        mammoth.convertToHtml({ arrayBuffer: event.target.result })
+            .then(result => {
+                const div = document.createElement("div");
+                div.id = "docx-viewer";
+                div.innerHTML = result.value;
+                workspace.appendChild(div);
+            });
+    };
+    reader.readAsArrayBuffer(file);
+}
+
+/* ================= TEXT VIEWER ================= */
+function renderText(file) {
+    const reader = new FileReader();
+    reader.onload = e => {
+        const pre = document.createElement("div");
+        pre.id = "text-viewer";
+        pre.textContent = e.target.result;
+        workspace.appendChild(pre);
+    };
+    reader.readAsText(file);
+}
+
+/* ================= IMAGE VIEWER ================= */
+function renderImage(file) {
+    const imgDiv = document.createElement("div");
+    imgDiv.id = "image-viewer";
+    const img = document.createElement("img");
+    img.src = URL.createObjectURL(file);
+    imgDiv.appendChild(img);
+    workspace.appendChild(imgDiv);
+}
+
+/* ================= EMULATOR MODULE ================= */
+function loadEmulator(file, ext) {
+    const emulatorDiv = document.createElement("div");
+    emulatorDiv.id = "emulator-container";
+    workspace.appendChild(emulatorDiv);
+
+    const coreMap = {
+        gba:'gba', gb:'gb', gbc:'gb', nes:'nes', sfc:'snes', smc:'snes',
+        md:'segaMD', gen:'segaMD', gg:'segaGG', sms:'segaMS',
+        n64:'n64', z64:'n64', v64:'n64', nds:'nds'
+    };
+
+    window.EJS_player = '#emulator-container';
+    window.EJS_gameUrl = URL.createObjectURL(file);
+    window.EJS_core = coreMap[ext] || 'gba';
+    window.EJS_pathtodata = 'https://cdn.emulatorjs.org/stable/data/';
+    window.EJS_startOnLoaded = true;
+
+    const script = document.createElement('script');
+    script.src = 'https://cdn.emulatorjs.org/stable/data/loader.js';
+    document.body.appendChild(script);
+}
+
+/* ================= INFO PANEL ================= */
+function showInfo() {
+    clearWorkspace();
+    workspace.innerHTML = `
+        <h2>Framework Capabilities</h2>
+        <ul>
+            <li>Document Rendering (PDF, DOCX, TXT)</li>
+            <li>Media Preview Support</li>
+            <li>Interactive Legacy Software Module</li>
+            <li>Client-side Processing Only</li>
+        </ul>
+    `;
+}
+</script>
+</body>
+</html>

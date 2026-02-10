@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Universal File Viewer</title>
+<title>Universal File Viewer & Emulator</title>
 
 <!-- PDF.js -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
@@ -32,6 +32,7 @@ body {
     box-shadow: 4px 0 24px rgba(0, 0, 0, 0.3);
     display: flex;
     flex-direction: column;
+    overflow-y: auto;
 }
 
 .sidebar h1 {
@@ -90,6 +91,45 @@ body {
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
 }
 
+.url-input-section {
+    margin-bottom: 20px;
+    padding: 16px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 10px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.url-input-section label {
+    display: block;
+    color: #94a3b8;
+    font-size: 0.8rem;
+    margin-bottom: 8px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.url-input-section input {
+    width: 100%;
+    padding: 10px;
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 6px;
+    color: #fff;
+    font-size: 0.85rem;
+    margin-bottom: 8px;
+}
+
+.url-input-section input::placeholder {
+    color: #64748b;
+}
+
+.url-input-section button {
+    width: 100%;
+    padding: 10px;
+    margin-bottom: 0;
+    font-size: 0.85rem;
+}
+
 .sidebar-footer {
     margin-top: auto;
     padding-top: 20px;
@@ -145,11 +185,67 @@ body {
     background: #fafbfc;
 }
 
-.workspace > p {
+.workspace.drag-over {
+    background: linear-gradient(135deg, #dbeafe 0%, #e0e7ff 100%);
+    border: 3px dashed #3b82f6;
+}
+
+.drop-zone {
     text-align: center;
-    color: #94a3b8;
+    color: #64748b;
+    padding: 60px 20px;
+}
+
+.drop-zone h2 {
+    font-size: 1.8rem;
+    color: #334155;
+    margin-bottom: 16px;
+}
+
+.drop-zone p {
     font-size: 1.1rem;
-    margin-top: 100px;
+    margin-bottom: 12px;
+}
+
+.drop-zone .icon {
+    font-size: 4rem;
+    margin-bottom: 20px;
+    opacity: 0.5;
+}
+
+.method-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 16px;
+    margin-top: 30px;
+    max-width: 800px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.method-card {
+    background: white;
+    padding: 20px;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    text-align: center;
+    border: 2px solid #e2e8f0;
+}
+
+.method-card .icon {
+    font-size: 2rem;
+    margin-bottom: 10px;
+}
+
+.method-card h3 {
+    font-size: 1rem;
+    color: #1e293b;
+    margin-bottom: 8px;
+}
+
+.method-card p {
+    font-size: 0.85rem;
+    color: #64748b;
 }
 
 /* Viewer Areas */
@@ -279,6 +375,25 @@ body {
 .workspace::-webkit-scrollbar-thumb:hover {
     background: #94a3b8;
 }
+
+/* Mobile adjustments */
+@media (max-width: 768px) {
+    body {
+        flex-direction: column;
+    }
+    
+    .sidebar {
+        width: 100%;
+        max-height: 40vh;
+        border-right: none;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    }
+    
+    .main {
+        margin: 0;
+        border-radius: 16px 16px 0 0;
+    }
+}
 </style>
 </head>
 <body>
@@ -286,14 +401,26 @@ body {
 <div class="sidebar">
     <h1>File Viewer</h1>
     <div class="subtitle">Universal Runtime</div>
+    
     <button onclick="fileInput.click()">
         <span>📂</span>
-        <span>Open File</span>
+        <span>Browse Files</span>
     </button>
+    
+    <div class="url-input-section">
+        <label>Load from URL</label>
+        <input type="text" id="urlInput" placeholder="https://example.com/file.pdf">
+        <button onclick="loadFromURL()">
+            <span>🌐</span>
+            <span>Load URL</span>
+        </button>
+    </div>
+    
     <button class="secondary" onclick="showInfo()">
         <span>ℹ️</span>
         <span>About</span>
     </button>
+    
     <input type="file" id="fileInput" hidden>
     
     <div class="sidebar-footer">
@@ -307,15 +434,108 @@ body {
         <span>Ready to process files</span>
     </div>
     <div class="workspace" id="workspace">
-        <p>Select a file to begin</p>
+        <div class="drop-zone">
+            <div class="icon">📁</div>
+            <h2>Multiple Ways to Load Files</h2>
+            <p>Choose the method that works for you:</p>
+            
+            <div class="method-list">
+                <div class="method-card">
+                    <div class="icon">🖱️</div>
+                    <h3>Drag & Drop</h3>
+                    <p>Drag files from any app directly here</p>
+                </div>
+                
+                <div class="method-card">
+                    <div class="icon">🌐</div>
+                    <h3>URL Input</h3>
+                    <p>Load files from web links (sidebar)</p>
+                </div>
+                
+                <div class="method-card">
+                    <div class="icon">📂</div>
+                    <h3>File Browser</h3>
+                    <p>Click "Browse Files" in sidebar</p>
+                </div>
+                
+                <div class="method-card">
+                    <div class="icon">📤</div>
+                    <h3>Share to Browser</h3>
+                    <p>Use "Share" from My Files → Browser</p>
+                </div>
+            </div>
+        </div>
     </div>
 </div>
 
 <script>
 const workspace = document.getElementById("workspace");
 const fileInput = document.getElementById("fileInput");
+const urlInput = document.getElementById("urlInput");
 
+// Traditional file input handler
 fileInput.addEventListener("change", handleFile);
+
+// Drag and drop handlers
+workspace.addEventListener("dragover", (e) => {
+    e.preventDefault();
+    workspace.classList.add("drag-over");
+});
+
+workspace.addEventListener("dragleave", () => {
+    workspace.classList.remove("drag-over");
+});
+
+workspace.addEventListener("drop", (e) => {
+    e.preventDefault();
+    workspace.classList.remove("drag-over");
+    
+    const files = e.dataTransfer.files;
+    if (files.length > 0) {
+        processFile(files[0]);
+    }
+});
+
+// URL loading function
+async function loadFromURL() {
+    const url = urlInput.value.trim();
+    if (!url) {
+        alert("Please enter a URL");
+        return;
+    }
+    
+    try {
+        const response = await fetch(url);
+        const blob = await response.blob();
+        
+        // Extract filename from URL or use default
+        let filename = url.split('/').pop().split('?')[0] || 'file';
+        if (!filename.includes('.')) {
+            // Try to guess extension from content-type
+            const contentType = response.headers.get('content-type');
+            if (contentType) {
+                if (contentType.includes('pdf')) filename += '.pdf';
+                else if (contentType.includes('image')) filename += '.png';
+                else if (contentType.includes('text')) filename += '.txt';
+            }
+        }
+        
+        const file = new File([blob], filename, { type: blob.type });
+        processFile(file);
+    } catch (error) {
+        alert("Error loading URL: " + error.message);
+    }
+}
+
+// Handle URL parameters (for deep linking)
+window.addEventListener("load", () => {
+    const params = new URLSearchParams(window.location.search);
+    const fileUrl = params.get('url');
+    if (fileUrl) {
+        urlInput.value = fileUrl;
+        loadFromURL();
+    }
+});
 
 function clearWorkspace() {
     workspace.innerHTML = "";
@@ -325,7 +545,10 @@ function clearWorkspace() {
 function handleFile(e) {
     const file = e.target.files[0];
     if (!file) return;
+    processFile(file);
+}
 
+function processFile(file) {
     const ext = file.name.split('.').pop().toLowerCase();
     clearWorkspace();
 
@@ -429,6 +652,9 @@ function showInfo() {
                 <li>Media Preview Support</li>
                 <li>Interactive Legacy Software Module</li>
                 <li>Client-side Processing Only</li>
+                <li>Drag & Drop File Loading</li>
+                <li>URL-based File Loading</li>
+                <li>Works Completely Offline</li>
             </ul>
         </div>
     `;

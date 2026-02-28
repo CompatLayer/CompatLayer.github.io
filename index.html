@@ -627,7 +627,8 @@ function loadEmulator(file, ext) {
     const coreMap = {
         gba:'gba', gb:'gb', gbc:'gb', nes:'nes', sfc:'snes', smc:'snes',
         md:'segaMD', gen:'segaMD', gg:'segaGG', sms:'segaMS',
-        n64:'n64', z64:'n64', v64:'n64', nds:'nds'
+        n64:'n64', z64:'n64', v64:'n64', nds:'nds', iso:'psp',
+        cso:'psp'
     };
 
     window.EJS_player = '#emulator-container';
@@ -635,6 +636,7 @@ function loadEmulator(file, ext) {
     window.EJS_core = coreMap[ext] || 'gba';
     window.EJS_pathtodata = 'https://cdn.emulatorjs.org/stable/data/';
     window.EJS_startOnLoaded = true;
+    window.EJS_threads = true;
 
     const script = document.createElement('script');
     script.src = 'https://cdn.emulatorjs.org/stable/data/loader.js';
